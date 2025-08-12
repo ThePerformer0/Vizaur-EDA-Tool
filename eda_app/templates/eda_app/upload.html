@@ -1,0 +1,99 @@
+{% extends 'eda_app/base.html' %}
+
+{% block title %}Upload - Vizaur{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-lg shadow-lg p-8">
+        <div class="text-center mb-8">
+            <i class="fas fa-cloud-upload-alt text-5xl text-blue-600 mb-4"></i>
+            <h2 class="text-3xl font-bold text-gray-800 mb-2">Uploader votre dataset</h2>
+            <p class="text-gray-600">Formats supportés : CSV, XLS, XLSX</p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" id="upload-form">
+            {% csrf_token %}
+            
+            <!-- Zone de drag & drop -->
+            <div id="drag-area" class="drag-area border-2 border-dashed border-gray-300 rounded-lg p-12 text-center mb-6 cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition duration-300">
+                <i class="fas fa-file-upload text-4xl text-gray-400 mb-4"></i>
+                <p class="text-lg text-gray-600 mb-2">Glissez-déposez votre fichier ici</p>
+                <p class="text-sm text-gray-500 mb-4">ou</p>
+                <button type="button" onclick="document.getElementById('id_file').click()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-300">
+                    <i class="fas fa-folder-open mr-2"></i>
+                    Parcourir les fichiers
+                </button>
+                {{ form.file }}
+            </div>
+
+            <!-- Informations fichier -->
+            <div id="file-info" class="hidden bg-gray-100 rounded-lg p-4 mb-6">
+                <div class="flex items-center">
+                    <i class="fas fa-file text-blue-600 text-xl mr-3"></i>
+                    <div>
+                        <p id="file-name" class="font-semibold"></p>
+                        <p id="file-size" class="text-sm text-gray-600"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bouton submit -->
+            <button type="submit" id="submit-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-upload mr-2"></i>
+                Uploader le dataset
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+// JavaScript pour drag & drop
+const dragArea = document.getElementById('drag-area');
+const fileInput = document.getElementById('id_file');
+const fileInfo = document.getElementById('file-info');
+const fileName = document.getElementById('file-name');
+const fileSize = document.getElementById('file-size');
+const submitBtn = document.getElementById('submit-btn');
+
+// Style le input file (le cacher)
+fileInput.style.display = 'none';
+
+// Drag & Drop events
+dragArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dragArea.classList.add('drag-over');
+});
+
+dragArea.addEventListener('dragleave', () => {
+    dragArea.classList.remove('drag-over');
+});
+
+dragArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dragArea.classList.remove('drag-over');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        fileInput.files = files;
+        showFileInfo(files[0]);
+    }
+});
+
+// Input file change
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        showFileInfo(e.target.files[0]);
+    }
+});
+
+// Afficher les infos du fichier
+function showFileInfo(file) {
+    fileName.textContent = file.name;
+    fileSize.textContent = `Taille: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+    fileInfo.classList.remove('hidden');
+    submitBtn.disabled = false;
+}
+
+// Initialement désactiver le bouton
+submitBtn.disabled = true;
+</script>
+{% endblock %}
