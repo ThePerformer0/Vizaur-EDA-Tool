@@ -1,8 +1,16 @@
 {% extends 'eda_app/base.html' %}
-
+{% load static %}
 {% block title %}{{ dataset.name }} - Analyse - Vizaur{% endblock %}
 
+{% block extra_head %}
+<!-- CSS spécifique à l'overview -->
+<link rel="stylesheet" href="{% static 'css/overview.css' %}">
+{% endblock %}
+
 {% block content %}
+<!-- Token CSRF pour les requêtes AJAX -->
+{% csrf_token %}
+
 <!-- Header du dataset -->
 <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
     <div class="flex items-center justify-between">
@@ -37,19 +45,19 @@
     <!-- En-têtes des onglets -->
     <div class="border-b border-gray-200">
         <nav class="flex space-x-8 px-6">
-            <button onclick="showTab('general')" id="tab-general" class="tab-button active py-4 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600">
+            <button data-tab="general" class="tab-button active py-4 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600">
                 <i class="fas fa-info-circle mr-2"></i>
                 Aperçu Général
             </button>
-            <button onclick="showTab('statistics')" id="tab-statistics" class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
+            <button data-tab="statistics" class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
                 <i class="fas fa-calculator mr-2"></i>
                 Statistiques
             </button>
-            <button onclick="showTab('missing')" id="tab-missing" class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
-                <i class="fas fa-exclamation-triangle mr-2"></i>
-                Valeurs Manquantes
+            <button data-tab="distributions" class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
+                <i class="fas fa-chart-bar mr-2"></i>
+                Distributions des Variables
             </button>
-            <button onclick="showTab('correlations')" id="tab-correlations" class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
+            <button data-tab="correlations" class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
                 <i class="fas fa-project-diagram mr-2"></i>
                 Corrélations
             </button>
@@ -59,108 +67,9 @@
     <!-- Contenu des onglets -->
     <div class="p-6">
         <!-- Onglet Aperçu Général (actif par défaut) -->
-        <div class="bg-gray-50 rounded-lg p-6">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-800 flex items-center">
-                    <i class="fas fa-columns mr-2 text-blue-600"></i>
-                    Informations sur les Colonnes
-                </h3>
-                <span class="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
-                    {{ column_info|length }} colonnes
-                </span>
-            </div>
-            
-            <!-- Container avec scroll limité -->
-            <div class="bg-white rounded-lg shadow" style="max-height: 400px; overflow-y: auto;">
-                <table class="min-w-full">
-                    <thead class="bg-gray-100 sticky top-0 z-10">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Colonne</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valeurs Manquantes</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        {% for column, info in column_info.items %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-3 text-sm text-gray-500">{{ forloop.counter }}</td>
-                            <td class="px-4 py-3 font-medium text-gray-900 max-w-xs truncate" title="{{ column }}">
-                                {{ column }}
-                            </td>
-                            <td class="px-4 py-3">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    {% if info.type == 'numérique' %}bg-blue-100 text-blue-800
-                                    {% elif info.type == 'catégoriel' %}bg-purple-100 text-purple-800
-                                    {% elif info.type == 'date' %}bg-green-100 text-green-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {% if info.type == 'numérique' %}<i class="fas fa-hashtag mr-1"></i>
-                                    {% elif info.type == 'catégoriel' %}<i class="fas fa-tags mr-1"></i>
-                                    {% elif info.type == 'date' %}<i class="fas fa-calendar mr-1"></i>
-                                    {% else %}<i class="fas fa-font mr-1"></i>{% endif %}
-                                    {{ info.type|title }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center">
-                                    <span class="text-sm text-gray-900 mr-2 min-w-max">
-                                        {{ info.missing_count }} ({{ info.missing_percent }}%)
-                                    </span>
-                                    {% if info.missing_percent > 0 %}
-                                        <div class="w-16 bg-gray-200 rounded-full h-2">
-                                            <div class="bg-red-400 h-2 rounded-full" style="width: {{ info.missing_percent }}%"></div>
-                                        </div>
-                                    {% else %}
-                                        <i class="fas fa-check-circle text-green-500"></i>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                
-                <!-- Indicateur de scroll si nécessaire -->
-                {% if column_info|length > 10 %}
-                <div class="bg-gray-50 px-4 py-2 text-center text-xs text-gray-500 border-t">
-                    <i class="fas fa-arrows-alt-v mr-1"></i>
-                    Faire défiler pour voir toutes les colonnes ({{ column_info|length }} total)
-                </div>
-                {% endif %}
-            </div>
-            <!-- Aperçu des données -->
-            <div class="mt-6 bg-gray-50 rounded-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    <i class="fas fa-table mr-2 text-indigo-600"></i>
-                    Aperçu des Données
-                </h3>
-
-                <div class="grid lg:grid-cols-2 gap-6">
-                    <!-- Premières lignes -->
-                    <div>
-                        <h4 class="font-medium text-gray-700 mb-3 flex items-center">
-                            <i class="fas fa-arrow-up mr-2 text-green-600"></i>
-                            Premières lignes (5)
-                        </h4>
-                        <div class="bg-white rounded-lg shadow overflow-x-auto">
-                            {{ data_preview.head|safe }}
-                        </div>
-                    </div>
-
-                    <!-- Dernières lignes -->
-                    <div>
-                        <h4 class="font-medium text-gray-700 mb-3 flex items-center">
-                            <i class="fas fa-arrow-down mr-2 text-red-600"></i>
-                            Dernières lignes (5)
-                        </h4>
-                        <div class="bg-white rounded-lg shadow overflow-x-auto">
-                            {{ data_preview.tail|safe }}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- Informations générales -->
-            <div class="bg-gray-50 rounded-lg p-6">
+        <div id="tab-general" class="tab-content">
+            <!-- Résumé du Dataset -->
+            <div class="bg-gray-50 rounded-lg p-6 mb-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
                     <i class="fas fa-info-circle mr-2 text-green-600"></i>
                     Résumé du Dataset
@@ -191,72 +100,166 @@
                         <p class="text-sm text-gray-600">Taille du fichier</p>
                     </div>
                 </div>
+            </div>
 
-                <!-- Répartition des types de colonnes -->
-                <div class="bg-white rounded-lg p-4">
-                    <h4 class="font-medium text-gray-800 mb-3">Répartition des Types</h4>
-                    {% regroup column_info.items by 1.type as type_groups %}
-                    <div class="space-y-2">
-                        {% for type_group in type_groups %}
-                        <div class="flex items-center justify-between">
-                            <span class="flex items-center text-sm text-gray-600">
-                                {% if type_group.grouper == 'numérique' %}<i class="fas fa-hashtag mr-2 text-blue-600"></i>
-                                {% elif type_group.grouper == 'catégoriel' %}<i class="fas fa-tags mr-2 text-purple-600"></i>
-                                {% elif type_group.grouper == 'date' %}<i class="fas fa-calendar mr-2 text-green-600"></i>
-                                {% else %}<i class="fas fa-font mr-2 text-gray-600"></i>{% endif %}
-                                {{ type_group.grouper|title }}
-                            </span>
-                            <span class="font-medium text-gray-800">{{ type_group.list|length }}</span>
+            <!-- Informations sur les Colonnes -->
+            <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+                        <i class="fas fa-columns mr-2 text-blue-600"></i>
+                        Informations sur les Colonnes
+                    </h3>
+                    <span class="text-sm text-gray-600 bg-white px-3 py-1 rounded-full">
+                        {{ column_info|length }} colonnes
+                    </span>
+                </div>
+                
+                <!-- Container avec scroll limité -->
+                <div class="bg-white rounded-lg shadow" style="max-height: 400px; overflow-y: auto;">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-100 sticky top-0 z-10">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Colonne</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valeurs Manquantes</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for column, info in column_info.items %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3 text-sm text-gray-500">{{ forloop.counter }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-900 max-w-xs truncate" title="{{ column }}">
+                                    {{ column }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                        {% if info.type == 'numérique' %}bg-blue-100 text-blue-800
+                                        {% elif info.type == 'catégoriel' %}bg-purple-100 text-purple-800
+                                        {% elif info.type == 'date' %}bg-green-100 text-green-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {% if info.type == 'numérique' %}<i class="fas fa-hashtag mr-1"></i>
+                                        {% elif info.type == 'catégoriel' %}<i class="fas fa-tags mr-1"></i>
+                                        {% elif info.type == 'date' %}<i class="fas fa-calendar mr-1"></i>
+                                        {% else %}<i class="fas fa-font mr-1"></i>{% endif %}
+                                        {{ info.type|title }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <div class="flex items-center">
+                                        <span class="text-sm text-gray-900 mr-2 min-w-max">
+                                            {{ info.missing_count }} ({{ info.missing_percent }}%)
+                                        </span>
+                                        {% if info.missing_percent > 0 %}
+                                            <div class="w-16 bg-gray-200 rounded-full h-2">
+                                                <div class="bg-red-400 h-2 rounded-full" style="width: {{ info.missing_percent }}%"></div>
+                                            </div>
+                                        {% else %}
+                                            <i class="fas fa-check-circle text-green-500"></i>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    <!-- Indicateur de scroll si nécessaire -->
+                    {% if column_info|length > 10 %}
+                    <div class="bg-gray-50 px-4 py-2 text-center text-xs text-gray-500 border-t">
+                        <i class="fas fa-arrows-alt-v mr-1"></i>
+                        Faire défiler pour voir toutes les colonnes ({{ column_info|length }} total)
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Aperçu des données -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <i class="fas fa-table mr-2 text-indigo-600"></i>
+                    Aperçu des Données
+                </h3>
+
+                <div class="grid lg:grid-cols-2 gap-6">
+                    <!-- Premières lignes -->
+                    <div>
+                        <h4 class="font-medium text-gray-700 mb-3 flex items-center">
+                            <i class="fas fa-arrow-up mr-2 text-green-600"></i>
+                            Premières lignes (5)
+                        </h4>
+                        <div class="bg-white rounded-lg shadow overflow-x-auto">
+                            {{ data_preview.head|safe }}
                         </div>
-                        {% endfor %}
+                    </div>
+
+                    <!-- Dernières lignes -->
+                    <div>
+                        <h4 class="font-medium text-gray-700 mb-3 flex items-center">
+                            <i class="fas fa-arrow-down mr-2 text-red-600"></i>
+                            Dernières lignes (5)
+                        </h4>
+                        <div class="bg-white rounded-lg shadow overflow-x-auto">
+                            {{ data_preview.tail|safe }}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Autres onglets (cachés initialement) -->
-        <div id="content-statistics" class="tab-content hidden">
-            <p class="text-gray-600">Statistiques descriptives - À implémenter</p>
+        <!-- Onglet Statistiques -->
+        <div id="tab-statistics" class="tab-content hidden">
+            <div class="text-center py-8">
+                <div class="loader" id="statistics-loader">
+                    <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+                    <p class="mt-2 text-gray-600">Chargement des statistiques...</p>
+                </div>
+                <div id="statistics-content" class="hidden">
+                    <!-- Le contenu sera chargé via AJAX -->
+                </div>
+            </div>
         </div>
 
-        <div id="content-missing" class="tab-content hidden">
-            <p class="text-gray-600">Analyse des valeurs manquantes - À implémenter</p>
+        <!-- Onglet Distributions des Variables -->
+        <div id="tab-distributions" class="tab-content hidden">
+            <div class="text-center py-8">
+                <div class="loader" id="distributions-loader">
+                    <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+                    <p class="mt-2 text-gray-600">Chargement des distributions...</p>
+                </div>
+                <div id="distributions-content" class="hidden">
+                    <!-- Le contenu sera chargé via AJAX -->
+                </div>
+            </div>
         </div>
 
-        <div id="content-correlations" class="tab-content hidden">
-            <p class="text-gray-600">Matrice de corrélations - À implémenter</p>
+        <!-- Onglet Corrélations -->
+        <div id="tab-correlations" class="tab-content hidden">
+            <div class="text-center py-8">
+                <div class="loader" id="correlations-loader">
+                    <i class="fas fa-spinner fa-spin text-2xl text-blue-600"></i>
+                    <p class="mt-2 text-gray-600">Chargement des corrélations...</p>
+                </div>
+                <div id="correlations-content" class="hidden">
+                    <!-- Le contenu sera chargé via AJAX -->
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- JavaScript pour la navigation des onglets -->
+<!-- Données pour JavaScript -->
 <script>
-function showTab(tabName) {
-    // Cacher tous les contenus d'onglets
-    const tabContents = document.querySelectorAll('.tab-content');
-    tabContents.forEach(content => content.classList.add('hidden'));
-    
-    // Retirer la classe active de tous les boutons
-    const tabButtons = document.querySelectorAll('.tab-button');
-    tabButtons.forEach(button => {
-        button.classList.remove('active', 'text-blue-600', 'border-blue-500');
-        button.classList.add('text-gray-500', 'border-transparent');
-    });
-    
-    // Afficher le contenu sélectionné
-    document.getElementById('content-' + tabName).classList.remove('hidden');
-    
-    // Activer le bouton sélectionné
-    const activeButton = document.getElementById('tab-' + tabName);
-    activeButton.classList.remove('text-gray-500', 'border-transparent');
-    activeButton.classList.add('active', 'text-blue-600', 'border-blue-500');
-}
+    window.datasetId = {{ dataset.id }};
+    window.datasetName = "{{ dataset.name }}";
 </script>
 
-<style>
-.tab-button:hover {
-    border-color: #d1d5db;
-}
-</style>
+{% endblock %}
 
+{% block extra_js %}
+<!-- JavaScript spécifique à l'overview -->
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/ajax-loader.js' %}"></script>
+<script src="{% static 'js/tabs-manager.js' %}"></script>
+<script src="{% static 'js/overview.js' %}"></script>
 {% endblock %}

@@ -1,0 +1,66 @@
+/* Styles spécifiques à la page overview */
+
+/* Animation pour les loaders */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Transitions pour les onglets */
+.tab-button {
+    transition: all 0.3s ease;
+}
+
+.tab-content {
+    transition: opacity 0.3s ease;
+}
+
+/* Styles pour les graphiques */
+.chart-container {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Styles pour les notifications */
+.notification {
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Styles pour les tableaux de statistiques */
+.stats-table {
+    font-size: 0.875rem;
+}
+
+.stats-table th {
+    background-color: #f9fafb;
+    font-weight: 600;
+    color: #374151;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .chart-container {
+        padding: 12px;
+    }
+    
+    .stats-table {
+        font-size: 0.75rem;
+    }
+}
